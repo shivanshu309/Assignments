@@ -7,8 +7,6 @@ from scipy.integrate import solve_ivp
 
 
 "========= LOAD INPUTS AND OTHER PARAMETERS ========="
-# phi_ca_0 = 1.1  # Initial cathode voltage, relative to anode (V)
-
 F = 96485.0
 R = 8.314
 T = 700.0 + 273.0   # K
@@ -17,7 +15,7 @@ beta = 0.5
 
 # Anode parameters
 U_an = -0.4         
-i0_an = 5e-2        
+i0_an = 5e-2       
 Cdl_an = 5e-6
 
 # Cathode parameters
@@ -26,17 +24,14 @@ i0_ca = 1e-2
 Cdl_ca = 1e-4       
 
 # Electrolyte area-specific resistance
-# This is an explicit modeling assumption so that the drop across the
-# electrolyte can be resolved.
-R_elyte_asr = 0.05  
+R_elyte_asr = 0.09 
 
 
 "========= INITIALIZE MODEL ========="
 # State vector:
 # SV[0] = dl_an = phi_an - phi_elyte_an
 # SV[1] = dl_ca = phi_ca - phi_elyte_ca
-#
-# Use a non-equilibrium initial condition so the transient is visible.
+
 phi_an_0 = 0.0
 phi_elyte_an_0 = 0.6
 phi_elyte_ca_0 = 0.6
@@ -76,11 +71,9 @@ def derivative(t, SV, i_ext):
     i_far_an = butler_volmer_current(eta_an, i0_an)
     i_far_ca = butler_volmer_current(eta_ca, i0_ca)
 
-    # Double-layer currents
-    # Positive i_ext sends positive charge to the anode
-    # and removes it from the cathode
-    i_dl_an = i_ext - i_far_an
-    i_dl_ca = -i_ext - i_far_ca
+    # Double-layer currents using chosen external-current sign convention
+    i_dl_an = -i_ext - i_far_an
+    i_dl_ca = i_ext - i_far_ca
 
     # ODEs
     ddl_an_dt = -i_dl_an / Cdl_an
@@ -123,8 +116,7 @@ def recover_potentials(solution, i_ext):
     # From dl_an = phi_an - phi_elyte_an
     phi_elyte_an = phi_an - dl_an
 
-    # Add a simple electrolyte ohmic drop so the two electrolyte
-    # interface potentials are not identical
+    # Add a simple electrolyte ohmic drop so the two electrolyte interface potentials are not identical
     phi_elyte_ca = phi_elyte_an - i_ext * R_elyte_asr
 
     # From dl_ca = phi_ca - phi_elyte_ca
@@ -163,5 +155,5 @@ solution_oc = run_case(i_ext=0.0)
 make_plot(solution_oc, i_ext=0.0, file_name='sofc_open_circuit.png')
 
 # Case 2: loaded case
-solution_load = run_case(i_ext=0.5)
-make_plot(solution_load, i_ext=0.5, file_name='sofc_loaded_0p5_Acm2.png')
+solution_load = run_case(i_ext=0.05)
+make_plot(solution_load, i_ext=0.05, file_name='sofc_loaded_0p5_Acm2.png')
